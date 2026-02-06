@@ -1,11 +1,9 @@
 extends Node2D
 class_name DirectSpell
-
-@export var speed := 1000.0
-@export var damage := 25.0
+@export var speed := 1000
 
 var travelled_distance := 0.0
-const MAX_RANGE := 1000.0
+const MAX_RANGE := 1000
 var Target : CharacterBody2D
 
 func _ready() -> void:
@@ -32,8 +30,9 @@ func _process(delta : float) -> void:
 		queue_free()
 	
 func _on_body_entered(body : Node2D) -> void:
-	"""Called when projectile hits something"""
-	if body == Target and body.has_method("TakeDamage"):
-		body.TakeDamage(damage)
-		print("Projectile hit %s for %d damage!" % [body.name, int(damage)])
-		queue_free()
+	#print("DirectSpell hit something " + body.name)
+	queue_free()
+	if body.has_method("TakeDamage"):
+		# pragma warning disable GDSCRIPT_METHOD_NOT_FOUND
+		body.TakeDamage(randf_range(1,10))
+		 # pragma warning disable GDSCRIPT_METHOD_NOT_FOUND

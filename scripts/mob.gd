@@ -1,85 +1,91 @@
 extends CharacterBody2D
+class_name Enemy
 
-# Enum for states
-enum State { IDLE, AGGRESSIVE, RETURNING, ATTACKING }
-var state: State = State.IDLE
+# Simple state machine
+enum State { IDLE, CHASING, ATTACKING, RETURN }
+var current_state: State = State.IDLE
 
-var deaggro_timer: float = 0.0
-var spawn_point: Vector2
+# Movement
+@export var speed := 100.0
+@export var attack_range := 50.0
+@export var aggro_range := 300.0
+
+# References
 var target: Node2D = null
+var spawn_point: Vector2
+var distance_traveled: float = 0.0
 
-@export var speed := 100
-# Variables for aggression management
-@export var aggro_radius: float = 300.0
-@export var deaggro_radius: float = 350.0
-@export var attack_radius: float = 50.0
-# Timer for de-aggro check (optional)
-@export var deaggro_time: float = 5.0
-
-
-# Attack cooldown
-@export var attack_cooldown: float = 1.0
-var attack_timer: float = 0.0
+# Attack
+@export var attack_cooldown_max := 1.0
+var attack_cooldown: float = 0.0
+var base_damage := 5.0  # Will be set by FloorManager
 
 func _ready() -> void:
 	target = Globals.player
+	if not target:
+		push_error("Enemy: Globals.player not set!")
 	spawn_point = global_position
+	add_to_group("enemy")
 
-func _process(delta : float) -> void:
-	match state:
-		State.IDLE:
-			check_aggro()
-		State.AGGRESSIVE:
-			if target:
-				pursue_target(delta)
-			check_deaggro(delta)
-			check_attack()
-		State.RETURNING:
-			return_to_spawn(delta)
-		State.ATTACKING:
-			perform_attack(delta)
-
-# Check if a target is within the aggro radius
-func check_aggro() -> void:
-	if target and global_position.distance_to(target.global_position) <= aggro_radius:
-		state = State.AGGRESSIVE
-
-# Pursue the target (simplified)
-func pursue_target(delta : float) -> void:
-	var direction : Vector2 = (target.global_position - global_position).normalized() * speed
-	move_and_slide()  # Adjust speed as necessary
-
-# Check if the target is within the attack radius
-func check_attack() -> void:
-	if target and global_position.distance_to(target.global_position) <= attack_radius:
-		state = State.ATTACKING
-
-# Perform the attack
-func perform_attack(delta : float) -> void:
-	if attack_timer <= 0:
-		# Perform the attack (e.g., deal damage to the target)
-		print("Attacking target!")
-		attack_timer = attack_cooldown
-	else:
-		attack_timer -= delta
+func _physics_process(delta: float) -> void:
+	if not is_instance_valid(target):
+		return
 	
-	# Check if the target moved out of attack range
-	if target and global_position.distance_to(target.global_position) > attack_radius:
-		state = State.AGGRESSIVE
+	var distance_to_target = global_position.distance_to(target.global_position)
+	var direction_to_target = (target.global_position - global_position).normalized()
+	
+	match current_state:
+		State.IDLE:
+			velocity = Vector2.ZERO
+			if distance_to_target <= aggro_range:
+				current_state = State.CHASING
+				distance_traveled = 0.0
+		
+		State.CHASING:
+			if distance_to_target <= attack_range:
+				current_state = State.ATTACKING
+				velocity = Vector2.ZERO
+			elif distance_to_target <= aggro_range:
+				velocity = direction_to_target * speed
+				distance_traveled += velocity.length() * delta
+			else:
+				current_state = State.RETURN
+				distance_traveled = 0.0
+		
+		State.ATTACKING:
+			velocity = Vector2.ZERO
+			attack_cooldown -= delta
+			if attack_cooldown <= 0:
+				perform_attack()
+				attack_cooldown = attack_cooldown_max
+			
+			# Exit attack range
+			if distance_to_target > attack_range:
+				current_state = State.CHASING
+		
+		State.RETURN:
+			var direction_to_spawn = (spawn_point - global_position).normalized()
+			var distance_to_spawn = global_position.distance_to(spawn_point)
+			
+			if distance_to_spawn > 10.0:
+				velocity = direction_to_spawn * speed
+			else:
+				current_state = State.IDLE
+				velocity = Vector2.ZERO
+				distance_traveled = 0.0
+	
+	move_and_slide()
 
-# Check if the target is outside the deaggro radius and start deaggro timer
-func check_deaggro(delta : float) -> void:
-	if global_position.distance_to(spawn_point) > deaggro_radius:
-		deaggro_timer += delta
-		if deaggro_timer >= deaggro_time:
-			state = State.RETURNING
-			deaggro_timer = 0.0
+func perform_attack() -> void:
+	"""Attack the target"""
+	if is_instance_valid(target) and target.has_method("TakeDamage"):
+		target.TakeDamage(base_damage)
+		print("%s attacks for %d damage!" % [name, base_damage])
+
+func TakeDamage(damage: float) -> void:
+	"""Take damage and potentially die"""
+	var health_comp = $Components/HealthComponent
+	if health_comp and health_comp.has_method("TakeDamage"):
+		health_comp.TakeDamage(damage)
 	else:
-		deaggro_timer = 0.0
-
-# Return to spawn point
-func return_to_spawn(_delta : float)	-> void:
-	var direction : Vector2 = (spawn_point - global_position).normalized() * speed
-	move_and_slide()  # Adjust speed as necessary
-	if global_position.distance_to(spawn_point) < 10:  # Close enough to spawn point
-		state = State.IDLE
+		push_error("Enemy missing HealthComponent!")

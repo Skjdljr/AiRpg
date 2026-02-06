@@ -72,8 +72,61 @@ func SetMaxHealth(newMaxHealth: int) -> void:
 
 func Die() -> void:
 	print(owner.name + " DIED!")
+	
+	# Drop loot if this is an enemy
+	if owner.is_in_group("enemy") and Globals and Globals.inventory:
+		var drop_roll = randf()
+		if drop_roll < 0.30:  # 30% drop chance
+			var loot_item = generate_random_loot()
+			Globals.inventory.collect_item(loot_item)
+	
 	emit_signal("DiedEventHandler", owner)
-	owner.queue_free() 
+	owner.queue_free()
+
+func generate_random_loot() -> ItemDropManager.LootItem:
+	"""Generate a random loot item"""
+	var rarity_roll = randf()
+	var rarity = "Common"
+	
+	if rarity_roll < 0.70:
+		rarity = "Common"
+	elif rarity_roll < 0.95:
+		rarity = "Rare"
+	else:
+		rarity = "Legendary"
+	
+	# Simple loot generation - choose random item of that rarity
+	var loot_names_by_rarity = {
+		"Common": ["Iron Dagger", "Bronze Sword", "Steel Mace", "Cloth Robe", "Leather Armor"],
+		"Rare": ["Enchanted Blade", "Mithril Sword", "Dragon Scale Armor", "Arcane Focus"],
+		"Legendary": ["Excalibur", "Sunblade", "Plate of the Ancients", "Crown of Power"]
+	}
+	
+	var names = loot_names_by_rarity[rarity]
+	var item_name = names[randi() % names.size()]
+	
+	# Create item with appropriate stats
+	var stats = {}
+	match item_name:
+		"Iron Dagger": stats = {"damage": 5}
+		"Bronze Sword": stats = {"damage": 7}
+		"Steel Mace": stats = {"damage": 6}
+		"Cloth Robe": stats = {"hp": 10}
+		"Leather Armor": stats = {"hp": 15}
+		"Enchanted Blade": stats = {"damage": 18}
+		"Mithril Sword": stats = {"damage": 20}
+		"Dragon Scale Armor": stats = {"hp": 35}
+		"Arcane Focus": stats = {"damage": 10}
+		"Excalibur": stats = {"damage": 50}
+		"Sunblade": stats = {"damage": 45}
+		"Plate of the Ancients": stats = {"hp": 80}
+		"Crown of Power": stats = {"damage": 25}
+		_: stats = {"damage": 5}
+	
+	# Determine slot
+	var slot = "Weapon" if "damage" in stats else "Armor"
+	
+	return ItemDropManager.LootItem.new(item_name, rarity, slot, stats) 
 
 func InitializeHealth() -> void:
 	currentHealth = maxHealth

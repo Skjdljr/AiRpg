@@ -5,13 +5,28 @@ var current_target : CharacterBody2D = null
 var orig_modulate : Color
 var original_material : Material
 var shader_material : ShaderMaterial
-var previousTargetIndex :			= 0
+var previousTargetIndex := 0
 var currentTargetIndex := 0
+
+# Game systems
+var inventory : Inventory = null
+var item_drop_manager : ItemDropManager = null
+var character_stats : CharacterStats = null
 
 @export var shader_material_path: String = "res://shaders/outline.tres"
 
 func _ready() -> void:
 	shader_material = load(shader_material_path) as ShaderMaterial
+	
+	# Initialize game systems
+	inventory = Inventory.new()
+	item_drop_manager = ItemDropManager.new()
+	character_stats = CharacterStats.new()
+	
+	# Make them children of this node for lifecycle management
+	add_child(inventory)
+	add_child(item_drop_manager)
+	add_child(character_stats)
 
 # TODO: make a select closet and a select next.
 # use those functions in the tabSelection if we have a closest then get next.
