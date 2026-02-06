@@ -1,0 +1,17 @@
+[gd_scene load_steps=5 format=3 uid="uid://doc1tc0oxe016"]
+
+[ext_resource type="Script" uid="uid://bw3eybr2i7dfc" path="res://scripts/effects/BaseEffect.gd" id="1_q7uoh"]
+[ext_resource type="Script" uid="uid://ci33gvgufuvry" path="res://scripts/effects/RootEffect.gd" id="2_rmkcj"]
+
+[sub_resource type="Resource" id="Resource_gsgx3"]
+metadata/__load_path__ = "res://scripts/spells/spell.gd"
+
+[sub_resource type="Resource" id="Resource_yajf4"]
+script = ExtResource("2_rmkcj")
+root_duration = 1.0
+
+[node name="root" type="Node"]
+script = SubResource("Resource_gsgx3")
+spellName = "Root"
+damage = 0
+effects = Array[ExtResource("1_q7uoh")]([SubResource("Resource_yajf4")])

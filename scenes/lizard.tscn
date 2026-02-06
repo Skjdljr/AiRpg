@@ -1,0 +1,124 @@
+[gd_scene load_steps=14 format=3 uid="uid://b00jjsmx054si"]
+
+[ext_resource type="Script" uid="uid://b1y0a2h7csxxl" path="res://scripts/lizardAi.gd" id="1_rb1yn"]
+[ext_resource type="Texture2D" uid="uid://cuy1po6ciuyyi" path="res://assets/MerfolkMysticIdleSide.png" id="2_vkw37"]
+[ext_resource type="PackedScene" uid="uid://brbnt4mtiqbd7" path="res://scenes/components/health_Component.tscn" id="3_04ffp"]
+[ext_resource type="PackedScene" uid="uid://giwyq3tjquhp" path="res://scenes/components/hit_box_component.tscn" id="4_tcfhd"]
+[ext_resource type="Script" uid="uid://biy7jbh3i32nt" path="res://scripts/components/selectable_component.gd" id="5_y3xi5"]
+[ext_resource type="PackedScene" uid="uid://bnjvub11x7r7s" path="res://scenes/components/floating_text_component.tscn" id="6_inkj6"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_5s5nw"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_kenc5"]
+atlas = ExtResource("2_vkw37")
+region = Rect2(32, 0, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_axpg5"]
+atlas = ExtResource("2_vkw37")
+region = Rect2(16, 0, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_pr7iv"]
+atlas = ExtResource("2_vkw37")
+region = Rect2(0, 0, 16, 16)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_x3r3s"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_kenc5")
+}],
+"loop": true,
+"name": &"attack",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_axpg5")
+}],
+"loop": true,
+"name": &"idle",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_pr7iv")
+}],
+"loop": true,
+"name": &"walk",
+"speed": 5.0
+}]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_vg3y8"]
+radius = 87.2812
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ncxda"]
+size = Vector2(17, 17)
+
+[node name="lizard" type="CharacterBody2D" groups=["enemy"]]
+collision_layer = 3
+collision_mask = 3
+input_pickable = true
+slide_on_ceiling = false
+script = ExtResource("1_rb1yn")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_5s5nw")
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+sprite_frames = SubResource("SpriteFrames_x3r3s")
+animation = &"attack"
+
+[node name="PlayerDetector" type="Area2D" parent="."]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PlayerDetector"]
+shape = SubResource("CircleShape2D_vg3y8")
+
+[node name="Components" type="Node2D" parent="."]
+
+[node name="HealthComponent" parent="Components" node_paths=PackedStringArray("healthBar", "healthLabel") instance=ExtResource("3_04ffp")]
+healthBar = NodePath("../../ProgressBar")
+healthLabel = NodePath("../../healthLabel")
+
+[node name="HitBoxComponent" parent="Components" node_paths=PackedStringArray("health_component") instance=ExtResource("4_tcfhd")]
+collision_layer = 3
+collision_mask = 2
+health_component = NodePath("../HealthComponent")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Components/HitBoxComponent"]
+position = Vector2(-1, 0)
+shape = SubResource("RectangleShape2D_ncxda")
+
+[node name="SelectableComponent" type="Node2D" parent="Components"]
+script = ExtResource("5_y3xi5")
+
+[node name="FloatingTextComponent" parent="Components" node_paths=PackedStringArray("health_component") instance=ExtResource("6_inkj6")]
+position = Vector2(0, -24)
+health_component = NodePath("../HealthComponent")
+
+[node name="healthLabel" type="Label" parent="."]
+offset_left = -22.0
+offset_top = -22.0
+offset_right = 22.0
+offset_bottom = -10.0
+theme_override_font_sizes/font_size = 7
+text = "100"
+horizontal_alignment = 1
+metadata/_edit_use_anchors_ = true
+
+[node name="ProgressBar" type="ProgressBar" parent="."]
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -22.0
+offset_top = -25.0
+offset_right = 25.0
+offset_bottom = -8.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_font_sizes/font_size = 9
+value = 100.0
+show_percentage = false
+
+[connection signal="body_entered" from="PlayerDetector" to="." method="_on_player_detector_body_entered"]

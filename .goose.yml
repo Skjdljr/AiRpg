@@ -1,0 +1,33 @@
+# Godot-safe Goose configuration for local Ollama
+profile: local-ollama  # Default profile to use
+
+profiles:
+  local-ollama:
+    provider: ollama          # Use Ollama as the backend
+    model: qwen2.5-coder:14b # Model name
+    ollama:
+      base_url: http://localhost:11434  # Local Ollama server
+      # If you ever need a custom model folder, set this in your shell before starting Ollama:
+      # OLLAMA_MODELS="D:\ollama\models"
+
+telemetry:
+  enabled: false             # Turn off sending usage data
+
+permissions:
+  filesystem:
+    read:
+      - "."                  # Can read entire project
+    write:
+      - "scripts/"            # Only write to scripts folder
+      - "addons/"             # Optional: write to addons if needed
+
+safety:
+  require_confirmation: true # Always ask before making file changes
+  max_file_changes: 5        # Limit per operation to prevent accidents
+
+restrictions:
+  ignore_file_patterns:
+    - "*.tscn"               # Never touch scene files
+    - "*.import"             # Godot import files
+    - "assets/*"             # Asset files (images, audio, etc.)
+    - "addons/*"             # Optional if you want to protect addon scripts
