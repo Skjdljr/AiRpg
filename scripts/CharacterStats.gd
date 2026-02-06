@@ -20,6 +20,7 @@ var CLASSES = {
 
 var current_class: String = "Mage"
 var character_data = {}
+var current_floor: int = 1  # Track which floor player is on
 
 func _ready() -> void:
 	# Initialize with Mage by default

@@ -12,6 +12,7 @@ var currentTargetIndex := 0
 var inventory : Inventory = null
 var item_drop_manager : ItemDropManager = null
 var character_stats : CharacterStats = null
+var death_saves_manager : DeathSavesManager = null
 
 @export var shader_material_path: String = "res://shaders/outline.tres"
 
@@ -22,11 +23,13 @@ func _ready() -> void:
 	inventory = Inventory.new()
 	item_drop_manager = ItemDropManager.new()
 	character_stats = CharacterStats.new()
+	death_saves_manager = DeathSavesManager.new()
 	
 	# Make them children of this node for lifecycle management
 	add_child(inventory)
 	add_child(item_drop_manager)
 	add_child(character_stats)
+	add_child(death_saves_manager)
 
 # TODO: make a select closet and a select next.
 # use those functions in the tabSelection if we have a closest then get next.

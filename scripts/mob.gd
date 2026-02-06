@@ -10,6 +10,10 @@ var current_state: State = State.IDLE
 @export var attack_range := 50.0
 @export var aggro_range := 300.0
 
+# Boss properties
+var is_boss := false
+var boss_name := "Boss"
+
 # References
 var target: Node2D = null
 var spawn_point: Vector2
@@ -26,6 +30,10 @@ func _ready() -> void:
 		push_error("Enemy: Globals.player not set!")
 	spawn_point = global_position
 	add_to_group("enemy")
+	
+	# Visual setup for boss
+	if is_boss:
+		setup_boss_visuals()
 
 func _physics_process(delta: float) -> void:
 	if not is_instance_valid(target):
@@ -89,3 +97,16 @@ func TakeDamage(damage: float) -> void:
 		health_comp.TakeDamage(damage)
 	else:
 		push_error("Enemy missing HealthComponent!")
+
+func setup_boss_visuals() -> void:
+	"""Apply visual changes to distinguish boss from regular enemies"""
+	# Scale up the enemy (2x size)
+	scale = Vector2(2.0, 2.0)
+	
+	# Change color to golden/red for boss
+	if has_node("Sprite2D"):
+		var sprite = get_node("Sprite2D")
+		# Apply a color modulation (golden tint)
+		sprite.self_modulate = Color.GOLD
+	
+	print("Boss spawned: %s" % boss_name)

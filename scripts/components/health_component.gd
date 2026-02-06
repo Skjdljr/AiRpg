@@ -10,6 +10,9 @@ signal DiedEventHandler
 @export var showHealthBar := true
 @export var showHealthText := true
 
+# Boss loot flag
+var is_boss_dropping_loot := false
+
 @onready var currentHealth := maxHealth
 signal damaged
 
@@ -73,15 +76,62 @@ func SetMaxHealth(newMaxHealth: int) -> void:
 func Die() -> void:
 	print(owner.name + " DIED!")
 	
-	# Drop loot if this is an enemy
-	if owner.is_in_group("enemy") and Globals and Globals.inventory:
-		var drop_roll = randf()
-		if drop_roll < 0.30:  # 30% drop chance
-			var loot_item = generate_random_loot()
-			Globals.inventory.collect_item(loot_item)
+	# Check if this is the player dying
+	if owner == Globals.player:
+		handle_player_death()
+	elif owner.is_in_group("enemy") and Globals and Globals.inventory:
+		# Regular enemy: drop loot
+		handle_enemy_death()
 	
 	emit_signal("DiedEventHandler", owner)
 	owner.queue_free()
+
+func handle_player_death() -> void:
+	"""Handle player death with death saves system"""
+	if not Globals or not Globals.death_saves_manager:
+		return
+	
+	# Use a death save
+	var can_continue = Globals.death_saves_manager.take_death()
+	
+	if not can_continue:
+		# Game over - third death
+		print("GAME OVER! No more death saves!")
+		# TODO: Load game over screen
+		get_tree().paused = true
+		return
+	
+	# Player can continue - show death options screen
+	show_death_options_screen()
+
+func handle_enemy_death() -> void:
+	"""Handle enemy death and loot drops"""
+	if is_boss_dropping_loot:
+		# Boss: guaranteed rare+ drops (2-4 items)
+		var drop_count = randi_range(2, 4)
+		for i in range(drop_count):
+			var loot_item = generate_boss_loot()
+			Globals.inventory.collect_item(loot_item)
+		print("Boss dropped %d items!" % drop_count)
+	else:
+		# Regular enemy: 30% chance for one random item
+		var drop_roll = randf()
+		if drop_roll < 0.30:
+			var loot_item = generate_random_loot()
+			Globals.inventory.collect_item(loot_item)
+
+func show_death_options_screen() -> void:
+	"""Show UI for player to choose: Retry Floor or Go Down a Level"""
+	# TODO: Create a proper UI panel with buttons
+	# For now, just print the options (will be replaced with UI)
+	print("\n=== DEATH OPTIONS ===")
+	print("Press R to RETRY current floor")
+	print("Press B to GO DOWN 1 level")
+	print("=== SELECT AN OPTION ===\n")
+	
+	# Store that we're waiting for input
+	if Globals and Globals.player:
+		Globals.player.awaiting_death_choice = true
 
 func generate_random_loot() -> ItemDropManager.LootItem:
 	"""Generate a random loot item"""
@@ -122,6 +172,45 @@ func generate_random_loot() -> ItemDropManager.LootItem:
 		"Plate of the Ancients": stats = {"hp": 80}
 		"Crown of Power": stats = {"damage": 25}
 		_: stats = {"damage": 5}
+	
+	# Determine slot
+	var slot = "Weapon" if "damage" in stats else "Armor"
+	
+	return ItemDropManager.LootItem.new(item_name, rarity, slot, stats)
+
+func generate_boss_loot() -> ItemDropManager.LootItem:
+	"""Generate guaranteed rare+ loot for bosses"""
+	var rarity_roll = randf()
+	var rarity = "Rare"
+	
+	if rarity_roll < 0.60:
+		rarity = "Rare"
+	else:
+		rarity = "Legendary"
+	
+	# Boss loot options
+	var loot_names_by_rarity = {
+		"Rare": ["Enchanted Blade", "Mithril Sword", "Dragon Scale Armor", "Arcane Focus", "Ring of Haste"],
+		"Legendary": ["Excalibur", "Sunblade", "Plate of the Ancients", "Crown of Power", "Cloak of Shadows"]
+	}
+	
+	var names = loot_names_by_rarity[rarity]
+	var item_name = names[randi() % names.size()]
+	
+	# Create item with appropriate stats
+	var stats = {}
+	match item_name:
+		"Enchanted Blade": stats = {"damage": 18}
+		"Mithril Sword": stats = {"damage": 20}
+		"Dragon Scale Armor": stats = {"hp": 35}
+		"Arcane Focus": stats = {"damage": 10}
+		"Ring of Haste": stats = {"cooldown_reduction": 0.15}
+		"Excalibur": stats = {"damage": 50}
+		"Sunblade": stats = {"damage": 45}
+		"Plate of the Ancients": stats = {"hp": 80}
+		"Crown of Power": stats = {"damage": 25}
+		"Cloak of Shadows": stats = {"hp": 75}
+		_: stats = {"damage": 20}
 	
 	# Determine slot
 	var slot = "Weapon" if "damage" in stats else "Armor"

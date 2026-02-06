@@ -25,6 +25,10 @@ var current_hp := 0.0
 var skill1_cooldown := 0.0
 var skill2_cooldown := 0.0
 
+# Death handling
+var awaiting_death_choice := false
+var is_dead := false
+
 # References
 @onready var animator : AnimationPlayer = $AnimationPlayer
 @onready var sprite : Sprite2D = $Sprite2D
@@ -50,6 +54,14 @@ func _ready() -> void:
 		Globals.character_stats.select_class("Mage")
 
 func _physics_process(delta: float) -> void:
+	if is_dead:
+		return
+	
+	# Handle death choice input
+	if awaiting_death_choice:
+		handle_death_choice()
+		return
+	
 	handle_input()
 	handle_movement(delta)
 	handle_skills(delta)
@@ -160,3 +172,55 @@ func restore_resources() -> void:
 		health_component.SetHealth(int(health_component.GetMaxHealth()))
 	if mana_component:
 		mana_component.restore_mana()
+
+func handle_death_choice() -> void:
+	"""Handle input for death options: retry or go back"""
+	if Input.is_action_just_pressed("ui_accept"):
+		# R key - Retry current floor
+		retry_current_floor()
+	elif Input.is_action_just_pressed("jump"):
+		# B key - Go back one floor
+		go_back_one_floor()
+
+func retry_current_floor() -> void:
+	"""Respawn player on current floor"""
+	print("Retrying Floor %d..." % Globals.character_stats.current_floor)
+	
+	# Reset player state
+	is_dead = false
+	awaiting_death_choice = false
+	
+	# Restore resources
+	restore_resources()
+	
+	# Respawn and restart floor
+	global_position = Vector2(100, 100)  # Spawn position (TODO: store checkpoint)
+	show()  # Make player visible again
+	
+	# Restart the floor - find FloorManager and retry
+	var floor_manager = get_tree().root.find_child("FloorManager", true, false)
+	if floor_manager:
+		floor_manager.setup_floor(Globals.character_stats.current_floor)
+
+func go_back_one_floor() -> void:
+	"""Move player back one floor"""
+	var current_floor = Globals.character_stats.current_floor
+	var target_floor = max(1, current_floor - 1)
+	
+	print("Going back to Floor %d..." % target_floor)
+	
+	# Reset player state
+	is_dead = false
+	awaiting_death_choice = false
+	
+	# Restore resources
+	restore_resources()
+	
+	# Respawn and go to previous floor
+	global_position = Vector2(100, 100)  # Spawn position
+	show()
+	
+	# Go to previous floor - find FloorManager
+	var floor_manager = get_tree().root.find_child("FloorManager", true, false)
+	if floor_manager:
+		floor_manager.setup_floor(target_floor)
